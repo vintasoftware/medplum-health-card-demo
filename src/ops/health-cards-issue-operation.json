@@ -1,0 +1,39 @@
+{
+  "resourceType": "OperationDefinition",
+  "name": "health-cards-issue",
+  "status": "active",
+  "kind": "operation",
+  "code": "health-cards-issue",
+  "resource": ["Patient"],
+  "system": false,
+  "type": false,
+  "instance": true,
+  "extension": [
+    {
+      "url": "https://medplum.com/fhir/StructureDefinition/operationDefinition-implementation",
+      "valueReference": { "reference": "Bot/<PUT-YOUR-BOT-ID-HERE>" }
+    }
+  ],
+
+  "parameter": [
+    { "use": "in", "name": "subject", "min": 1, "max": "1", "type": "Reference" },
+    { "use": "in", "name": "credentialType", "min": 1, "max": "*", "type": "uri" },
+    { "use": "in", "name": "credentialValueSet", "min": 0, "max": "*", "type": "uri" },
+    { "use": "in", "name": "includeIdentityClaim", "min": 0, "max": "*", "type": "string" },
+    { "use": "in", "name": "_since", "min": 0, "max": "1", "type": "dateTime" },
+
+    { "use": "out", "name": "verifiableCredential", "min": 0, "max": "*", "type": "string" },
+    {
+      "use": "out",
+      "name": "resourceLink",
+      "min": 0,
+      "max": "*",
+      "type": "BackboneElement",
+      "part": [
+        { "name": "vcIndex", "use": "out", "min": 0, "max": "1", "type": "integer" },
+        { "name": "bundledResource", "use": "out", "min": 0, "max": "1", "type": "uri" },
+        { "name": "hostedResource", "use": "out", "min": 0, "max": "1", "type": "uri" }
+      ]
+    }
+  ]
+}

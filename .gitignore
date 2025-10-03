@@ -136,3 +136,5 @@ coverage
 _personal/
 .cursor/
 
+# Data
+data/
