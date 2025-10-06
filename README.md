@@ -22,7 +22,6 @@ pnpm test
 
 # Build bot
 pnpm run build:bots
-pnpm run deploy:bots-and-operation
 ```
 
 ## Deploy bots
