@@ -1,21 +1,32 @@
 import type { BotEvent, MedplumClient } from '@medplum/core'
-import type { Parameters, Resource, ParametersParameter, Bundle } from '@medplum/fhirtypes'
-import { sanitizePatient } from './utils/utilities'
+import type {
+  Parameters,
+  Resource,
+  ParametersParameter,
+  Bundle,
+  Reference,
+  Patient,
+} from '@medplum/fhirtypes'
+import {
+  sanitizePatient,
+  makeStringLiteral,
+  expandValueSet,
+  filterResourcesByValueSets,
+} from './utils/utilities'
 import { SHCIssuer } from 'kill-the-clipboard'
 
 export async function handler(
   medplum: MedplumClient,
   event: BotEvent<Parameters>
-): Promise<Parameters> {
+): Promise<Record<string, unknown>> {
   const parameters = event.input as Parameters
   const credentialTypeParameters: ParametersParameter[] = []
   const subject = parameters.parameter?.find(p => p.name === 'subject')
   if (!subject) {
     throw new Error('Subject is required')
   }
-  const patientReference = subject?.valueReference?.reference
+  const patientReference = subject?.valueReference as Reference
 
-  // collect credential type parameters
   credentialTypeParameters.push(
     ...(parameters.parameter?.filter(p => p.name === 'credentialType') || [])
   )
@@ -29,7 +40,6 @@ export async function handler(
     )
     .filter(Boolean)
 
-  // collect optional credential value set parameters
   const credentialValueSetParameters: ParametersParameter[] = []
   credentialValueSetParameters.push(
     ...(parameters.parameter?.filter(p => p.name === 'credentialValueSet') || [])
@@ -37,7 +47,6 @@ export async function handler(
   const credentialValueSets =
     credentialValueSetParameters?.map(p => p.valueUri).filter(Boolean) || []
 
-  // collect optional include identity claim parameters
   const includeIdentityClaimParameters: ParametersParameter[] = []
   includeIdentityClaimParameters.push(
     ...(parameters.parameter?.filter(p => p.name === 'includeIdentityClaim') || [])
@@ -56,11 +65,12 @@ export async function handler(
     }
   }
 
-  // from here all the parameters are validated, let's start the process of collecting resources
-  let collectedResources: Resource[] = []
+  const patient = await medplum.readReference(patientReference as Reference)
+  const sanitizedPatient = sanitizePatient(patient as Patient, includeIdentityClaims as string[])
+  const collectedResources: Resource[] = []
   for (const type of normalizedCredentialTypes) {
     if (type === 'Immunization' || type === 'Observation') {
-      const searchParams: Record<string, string> = { patient: patientReference as string }
+      const searchParams: Record<string, string> = { patient: `Patient/${patient.id}` }
       if (since) {
         searchParams.date = `ge${since}`
       }
@@ -71,37 +81,36 @@ export async function handler(
     }
   }
 
-  const patient = await medplum.readResource('Patient', patientReference as string)
-  const sanitizedPatient = sanitizePatient(patient, includeIdentityClaims as string[])
+  let filteredResources = collectedResources
+  if (credentialValueSets.length > 0) {
+    const expandedVSets = await Promise.all(
+      credentialValueSets.map(uri => expandValueSet(medplum, uri as string))
+    )
+    filteredResources = filterResourcesByValueSets(collectedResources, expandedVSets)
+  }
 
-  console.log('collectedResources')
-  console.log(collectedResources)
+  if (filteredResources.length === 0) {
+    return { resourceType: 'Parameters' }
+  }
 
   const bundle: Bundle = {
     resourceType: 'Bundle',
     type: 'collection',
     entry: [
       ...(patient ? [{ fullUrl: `Patient/${patient.id}`, resource: sanitizedPatient }] : []),
-      ...collectedResources.map(r => ({
+      ...filteredResources.map(r => ({
         fullUrl: `${r.resourceType}/${r.id}`,
         resource: r,
       })),
     ],
   }
-
   const issuer = new SHCIssuer({
     issuer: event.secrets.SHC_ISSUER?.valueString as string,
-    privateKey: event.secrets.PRIVATE_KEY_PKCS8?.valueString as string, // ES256 private key in PKCS#8 format
-    publicKey: event.secrets.PUBLIC_KEY_SPKI?.valueString as string, // ES256 public key in SPKI format
+    privateKey: makeStringLiteral(event.secrets.PRIVATE_KEY_PKCS8?.valueString as string), // ES256 private key in PKCS#8 format
+    publicKey: makeStringLiteral(event.secrets.PUBLIC_KEY_SPKI?.valueString as string), // ES256 public key in SPKI format
   })
 
   const healthCard = await issuer.issue(bundle)
-  const healthCardParameter: ParametersParameter = {
-    name: 'verifiableCredential',
-    valueString: healthCard.asJWS(),
-  }
-  return {
-    resourceType: 'Parameters',
-    parameter: [healthCardParameter],
-  }
+  // necessary to work with medplum
+  return { verifiableCredential: healthCard.asJWS() }
 }

@@ -28,7 +28,6 @@
       "name": "resourceLink",
       "min": 0,
       "max": "*",
-      "type": "BackboneElement",
       "part": [
         { "name": "vcIndex", "use": "out", "min": 0, "max": "1", "type": "integer" },
         { "name": "bundledResource", "use": "out", "min": 0, "max": "1", "type": "uri" },

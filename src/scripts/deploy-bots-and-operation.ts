@@ -112,6 +112,34 @@ async function main() {
     console.error('❌ Error reading bot code file:', error)
     process.exit(1)
   }
+
+  // Now deploy the operation
+  console.log('🔍 Deploying operation...')
+
+  const operationPath = path.join(process.cwd(), 'src/ops/health-cards-issue-operation.json')
+  console.log(`📦 Loading operation from: ${operationPath}`)
+
+  const operationJson = await fs.readFile(operationPath, 'utf8')
+  const operationJsonWithBotId = operationJson.replace('<PUT-YOUR-BOT-ID-HERE>', botId)
+  const operationRes = await fetch(`${baseUrl}/fhir/R4/OperationDefinition`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${access_token}`,
+      'Content-Type': 'application/fhir+json',
+    },
+    body: operationJsonWithBotId,
+  })
+
+  const operationResponse = await operationRes.text()
+  if (!operationRes.ok) {
+    console.error('❌ Operation deploy failed:')
+    console.error(`Status: ${operationRes.status}`)
+    console.error(operationResponse)
+    process.exit(1)
+  }
+
+  console.log('✅ Operation deploy completed successfully!')
+  console.log('Operation response:\n', operationResponse)
 }
 
 main().catch(err => {
