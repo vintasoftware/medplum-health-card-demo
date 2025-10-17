@@ -1,5 +1,5 @@
-import { MedplumClient } from '@medplum/core'
-import { Patient } from '@medplum/fhirtypes'
+import type { MedplumClient } from '@medplum/core'
+import type { Patient } from '@medplum/fhirtypes'
 
 export function sanitizePatient(patient: Patient, claims: string[]): Patient {
   if (!claims.length) return patient

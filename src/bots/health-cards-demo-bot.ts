@@ -1,19 +1,19 @@
 import type { BotEvent, MedplumClient } from '@medplum/core'
 import type {
-  Parameters,
-  Resource,
-  ParametersParameter,
   Bundle,
-  Reference,
+  Parameters,
+  ParametersParameter,
   Patient,
+  Reference,
+  Resource,
 } from '@medplum/fhirtypes'
+import { SHCIssuer } from 'kill-the-clipboard'
 import {
-  sanitizePatient,
-  makeStringLiteral,
   expandValueSet,
   filterResourcesByValueSets,
+  makeStringLiteral,
+  sanitizePatient,
 } from './utils/utilities'
-import { SHCIssuer } from 'kill-the-clipboard'
 
 export async function handler(
   medplum: MedplumClient,

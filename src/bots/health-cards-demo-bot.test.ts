@@ -1,8 +1,8 @@
+import { beforeAll, beforeEach, describe, expect, test } from '@jest/globals'
 import { indexSearchParameterBundle, indexStructureDefinitionBundle } from '@medplum/core'
 import { readJson, SEARCH_PARAMETER_BUNDLE_FILES } from '@medplum/definitions'
 import type { Bundle, Parameters, SearchParameter } from '@medplum/fhirtypes'
 import { MockClient } from '@medplum/mock'
-import { describe, test, expect, beforeAll, beforeEach } from '@jest/globals'
 import { handler } from './health-cards-demo-bot'
 import {
   basicParameters,

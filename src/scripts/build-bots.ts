@@ -1,9 +1,9 @@
 // scripts/build-health-cards-bot-bundle.ts
+import { randomUUID } from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
 import { ContentType } from '@medplum/core'
 import type { Bundle, BundleEntry } from '@medplum/fhirtypes'
-import { randomUUID } from 'crypto'
-import fs from 'fs'
-import path from 'path'
 
 interface HealthCardsBotDescription {
   src: string
@@ -23,9 +23,8 @@ async function main(): Promise<void> {
   for (const bot of Bots) {
     const botName = path.parse(bot.dist).name
 
-    // 1) Binary do JS (executável)
     const distFile = fs.readFileSync(bot.dist)
-    const distFullUrl = 'urn:uuid:' + randomUUID()
+    const distFullUrl = `urn:uuid:${randomUUID()}`
     entries.push({
       fullUrl: distFullUrl,
       request: { method: 'POST', url: 'Binary' },
@@ -39,7 +38,7 @@ async function main(): Promise<void> {
     let srcFullUrl: string | undefined
     if (bot.src && fs.existsSync(bot.src)) {
       const srcFile = fs.readFileSync(bot.src)
-      srcFullUrl = 'urn:uuid:' + randomUUID()
+      srcFullUrl = `urn:uuid:${randomUUID()}`
       entries.push({
         fullUrl: srcFullUrl,
         request: { method: 'POST', url: 'Binary' },
@@ -51,7 +50,7 @@ async function main(): Promise<void> {
       })
     }
 
-    const botFullUrl = 'urn:uuid:' + randomUUID()
+    const botFullUrl = `urn:uuid:${randomUUID()}`
     entries.push({
       fullUrl: botFullUrl,
       request: { method: 'POST', url: 'Bot' },

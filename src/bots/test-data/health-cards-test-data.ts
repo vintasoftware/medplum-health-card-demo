@@ -1,4 +1,4 @@
-import type { Bundle, Immunization, Observation, Patient, Parameters } from '@medplum/fhirtypes'
+import type { Bundle, Immunization, Observation, Parameters, Patient } from '@medplum/fhirtypes'
 
 export const testPatient: Patient = {
   resourceType: 'Patient',
