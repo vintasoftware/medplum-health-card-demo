@@ -15,6 +15,7 @@ import {
   sanitizePatient,
 } from './utils/utilities'
 
+const _RESOURCE_TYPES_VALUE_SET_CANONICAL_URL = 'http://hl7.org/fhir/ValueSet/resource-types'
 export async function handler(
   medplum: MedplumClient,
   event: BotEvent<Parameters>
@@ -33,12 +34,22 @@ export async function handler(
   if (!credentialTypeParameters.length) {
     throw new Error('Credential type is required')
   }
+
   const credentialTypes = credentialTypeParameters.map(p => p.valueUri).filter(Boolean)
+  const resourceTypesVS = await medplum.valueSetExpand({
+    url: _RESOURCE_TYPES_VALUE_SET_CANONICAL_URL,
+  })
+  const _allowedResourceTypes = new Set(resourceTypesVS.expansion?.contains?.map(c => c.code) ?? [])
+  type ResourceTypeName = Resource['resourceType']
   const normalizedCredentialTypes = credentialTypes
     .map(type =>
       type === '#immunization' ? 'Immunization' : type === '#laboratory' ? 'Observation' : type
     )
-    .filter(Boolean)
+    .filter(type => _allowedResourceTypes.has(type))
+
+  if (normalizedCredentialTypes.length === 0) {
+    throw new Error('No valid FHIR resource types provided in credentialType parameters.')
+  }
 
   const credentialValueSetParameters: ParametersParameter[] = []
   credentialValueSetParameters.push(
@@ -68,17 +79,13 @@ export async function handler(
   const patient = await medplum.readReference(patientReference as Reference)
   const sanitizedPatient = sanitizePatient(patient as Patient, includeIdentityClaims as string[])
   const collectedResources: Resource[] = []
-  for (const type of normalizedCredentialTypes) {
-    if (type === 'Immunization' || type === 'Observation') {
-      const searchParams: Record<string, string> = { patient: `Patient/${patient.id}` }
-      if (since) {
-        searchParams.date = `ge${since}`
-      }
-      const resources = await medplum.searchResources(type, searchParams)
-      collectedResources.push(...resources)
-    } else {
-      throw new Error(`Credential type ${type} is not supported`)
+  for (const type of normalizedCredentialTypes as ResourceTypeName[]) {
+    const searchParams: Record<string, string> = { patient: `Patient/${patient.id}` }
+    if (since) {
+      searchParams.date = `ge${since}`
     }
+    const resources = await medplum.searchResources(type, searchParams)
+    collectedResources.push(...resources)
   }
 
   let filteredResources = collectedResources

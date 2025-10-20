@@ -38,11 +38,18 @@ describe('Health Cards Demo Bot', () => {
 
   beforeEach(async () => {
     medplum = new MockClient()
+    jest.spyOn(medplum, 'valueSetExpand').mockResolvedValue({
+      expansion: { contains: [{ code: 'Immunization' }, { code: 'Observation' }] },
+    } as any)
     await medplum.createResource(testPatient)
     await medplum.createResource(testImmunization)
     await medplum.createResource(testObservation)
     await medplum.createResource(testImmunizationWithDifferentCode)
     await medplum.createResource(testObservationWithDifferentCode)
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
   describe('Basic functionality', () => {
@@ -156,7 +163,7 @@ describe('Health Cards Demo Bot', () => {
           contentType,
           secrets: testSecrets,
         })
-      ).rejects.toThrow('Credential type #unsupported is not supported')
+      ).rejects.toThrow('No valid FHIR resource types provided in credentialType parameters.')
     })
   })
 
