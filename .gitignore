@@ -136,5 +136,5 @@ coverage
 _personal/
 .cursor/
 
-# Data
-data/
+# Medplum Project specific files
+medplum.config.json

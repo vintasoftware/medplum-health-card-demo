@@ -1,0 +1,68 @@
+[
+  {
+    "resourceType": "Immunization",
+    "status": "completed",
+    "vaccineCode": {
+      "coding": [
+        {
+          "system": "http://hl7.org/fhir/sid/cvx",
+          "code": "207",
+          "display": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5 mL dose"
+        }
+      ]
+    },
+    "occurrenceDateTime": "2021-01-01",
+    "performer": [
+      {
+        "actor": {
+          "display": "ABC General Hospital"
+        }
+      }
+    ],
+    "lotNumber": "0000001"
+  },
+  {
+    "resourceType": "Immunization",
+    "status": "completed",
+    "vaccineCode": {
+      "coding": [
+        {
+          "system": "http://hl7.org/fhir/sid/cvx",
+          "code": "207",
+          "display": "COVID-19, mRNA, LNP-S, PF, 100 mcg/0.5 mL dose"
+        }
+      ]
+    },
+    "occurrenceDateTime": "2021-01-29",
+    "performer": [
+      {
+        "actor": {
+          "display": "ABC General Hospital"
+        }
+      }
+    ],
+    "lotNumber": "0000007"
+  },
+  {
+    "resourceType": "Immunization",
+    "status": "completed",
+    "vaccineCode": {
+      "coding": [
+        {
+          "system": "http://hl7.org/fhir/sid/cvx",
+          "code": "229",
+          "display": "COVID-19, mRNA, LNP-S, bivalent booster, PF, 50 mcg/0.5 mL dose"
+        }
+      ]
+    },
+    "occurrenceDateTime": "2022-09-05",
+    "performer": [
+      {
+        "actor": {
+          "display": "ABC General Hospital"
+        }
+      }
+    ],
+    "lotNumber": "0000001"
+  }
+]

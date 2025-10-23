@@ -1,30 +1,45 @@
 {
   "name": "medplum-health-card-demo",
   "version": "1.0.0",
-  "description": "",
+  "description": "A monorepo for Medplum SMART Health Cards - includes bot backend and patient-facing app",
   "main": "dist/index.js",
+  "private": true,
+  "workspaces": [
+    "src/app"
+  ],
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "build": "tsc",
-    "build:bots": "rimraf data/core && npm run clean && tsc --project tsconfig-bots.json && node --no-warnings esbuild-script.mjs && npx ts-node --project tsconfig-deploy.json src/scripts/build-bots.ts",
-    "deploy:bots": "npx ts-node --project tsconfig-deploy.json src/scripts/deploy-bots.ts",
-    "deploy:bots-and-operation": "npx ts-node --project tsconfig-deploy.json src/scripts/deploy-bots-and-operation.ts",
-    "clean": "rimraf dist",
+    "build": "npm run build:bots && npm run build:app",
+    "build:bots": "npm run clean:bots && tsc --project tsconfig-bots.json && node --no-warnings esbuild-script.mjs",
+    "build:app": "npm run build --workspace=src/app",
+    "deploy:operation": "npx ts-node --project tsconfig-deploy.json src/scripts/deploy-operation.ts",
+    "deploy:valuesets": "npx ts-node --project tsconfig-deploy.json src/scripts/deploy-valuesets.ts",
+    "clean": "npm run clean:bots && npm run clean:app",
+    "clean:bots": "rimraf dist",
+    "clean:app": "npm run clean --workspace=src/app --if-present",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts",
+    "dev:app": "npm run dev --workspace=src/app",
+    "preview:app": "npm run preview --workspace=src/app",
     "lint": "biome lint src/",
     "lint:fix": "biome lint --write src/",
+    "lint:app": "npm run lint --workspace=src/app",
+    "lint:app:fix": "npm run lint:fix --workspace=src/app",
     "format": "biome format --write src/",
     "format:check": "biome format src/",
     "check": "biome check src/",
     "check:fix": "biome check --write src/"
   },
-  "keywords": [],
+  "keywords": [
+    "medplum",
+    "fhir",
+    "smart-health-cards",
+    "healthcare"
+  ],
   "author": "",
   "license": "ISC",
-  "packageManager": "pnpm@10.17.1",
   "devDependencies": {
     "@biomejs/biome": "^2.2.5",
     "@jest/globals": "^29.7.0",
@@ -37,15 +52,18 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@medplum/bot-layer": "^4.4.1",
-    "@medplum/core": "^4.4.1",
-    "@medplum/definitions": "^4.4.1",
-    "@medplum/fhirtypes": "^4.4.1",
-    "@medplum/mock": "^4.4.1",
+    "@medplum/bot-layer": "^4.5.1",
+    "@medplum/core": "^4.5.1",
+    "@medplum/definitions": "^4.5.1",
+    "@medplum/fhirtypes": "^4.5.1",
+    "@medplum/mock": "^4.5.1",
     "dotenv": "^17.2.3",
     "esbuild": "^0.25.10",
     "fast-glob": "^3.3.3",
     "jose": "^6.1.0",
-    "kill-the-clipboard": "^1.0.0"
+    "kill-the-clipboard": "^1.0.2"
+  },
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

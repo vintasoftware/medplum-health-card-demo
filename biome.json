@@ -4,11 +4,10 @@
 	  "enabled": true,
 	  "clientKind": "git"
 	},
-	"files": {
+  "files": {
 	  "ignoreUnknown": false,
-	  "includes": ["src/**/*", "test/**/*", "*.ts", "*.js", "*.json"],
-	  "experimentalScannerIgnores": ["dist/**", "node_modules/**"]
-	},
+	  "includes": ["src/bots/**/*", "src/ops/**/*", "src/scripts/**/*", "src/app/**/*", "*.ts", "*.js", "*.json"]
+  },
 	"formatter": {
 	  "enabled": true,
 	  "indentStyle": "space",
@@ -92,4 +91,3 @@
 	  }
 	}
   }
-  

@@ -7,10 +7,11 @@ import botLayer from '@medplum/bot-layer/package.json' with { type: 'json' };
 import esbuild from 'esbuild';
 import fastGlob from 'fast-glob';
 
-// Find all TypeScript files in your source directory, but exclude scripts
-const entryPoints = fastGlob.sync('./src/**/*.ts').filter((file) => 
-  !file.endsWith('test.ts') && 
-  !file.includes('/scripts/') // Exclude scripts directory
+// Find all TypeScript files in your source directory, but exclude scripts and app
+const entryPoints = fastGlob.sync('./src/**/*.ts').filter((file) =>
+  !file.endsWith('test.ts') &&
+  !file.includes('/scripts/') && // Exclude scripts directory
+  !file.includes('/app/') // Exclude app workspace directory
 );
 
 console.log('Entry points:', entryPoints); // Debug: see what files are being included
