@@ -9,7 +9,7 @@ Uses the library [kill-the-clipboard](https://github.com/vintasoftware/kill-the-
 ### Bot Features
 - **SMART Health Card Issuance**: Generate health cards for any FHIR resource type, including vaccination records and lab results
 - **Date Filtering**: Filter resources by date using `_since` parameter
-- **Value Set Filtering**: Filter resources by specific value sets
+- **Value Set Filtering**: Filter resources by specific value sets (NOTE: requires UMLS Terminology, a [premium Medplum feature](https://www.medplum.com/pricing))
 
 ### Patient-Facing App Features
 - **Immunization Filtering**: Filter patient immunizations by value sets and date ranges
@@ -123,7 +123,7 @@ The `$health-cards-issue` custom FHIR Operation is implemented in the bot with t
 
 **Optional:**
 - `_since`: ISO8601 date for filtering (e.g., "2023-01-01")
-- `credentialValueSet`: Value set URIs for filtering (e.g., "https://terminology.smarthealth.cards/ValueSet/immunization-covid-all"). Multiple value sets can be specified using multiple parameters with AND logic.
+- `credentialValueSet`: Value set URIs for filtering (e.g., "https://terminology.smarthealth.cards/ValueSet/immunization-covid-all"). Multiple value sets can be specified using multiple parameters with AND logic. NOTE: requires UMLS Terminology, a [premium Medplum feature](https://www.medplum.com/pricing). Grab SMART Health Cards terminology from [terminology.smarthealth.cards](https://terminology.smarthealth.cards/artifacts.html) and add it to your Medplum instance.
 - `includeIdentityClaim`: Patient data to include (e.g., `Patient.name`)
 
 **Example Request (with filters):**
@@ -174,34 +174,6 @@ HEALTH_CARD_PRIVATE_KEY={"kty": "EC","kid": "3Kfdg-XwP-7gXyywtUfUADwBumDOPKMQx-i
 1. Go to the "Secrets" page in [Medplum App](https://app.medplum.com/admin/secrets)
 2. Add the three secrets with the example values
 
-## Available Terminology
-
-The project includes SMART Health Cards terminology from [terminology.smarthealth.cards](https://terminology.smarthealth.cards/artifacts.html) and [WHO SMART Guidelines](https://smart.who.int/):
-
-### CodeSystems
-- **ICD-11** (`http://id.who.int/icd/release/11/mms`) - WHO International Classification of Diseases for vaccine and disease identification
-
-Stored in `src/fixtures/codesystems/`
-
-### ValueSets
-
-**Immunization ValueSets:**
-- `immunization-covid-all` - All COVID-19 vaccine codes
-- `immunization-covid-cvx` - COVID-19 vaccines (CVX codes)
-- `immunization-covid-icd11` - COVID-19 vaccines (ICD-11 codes)
-- `immunization-covid-snomed` - COVID-19 vaccines (SNOMED CT codes)
-- `immunization-orthopoxvirus-all` - Orthopoxvirus vaccine codes
-- `immunization-orthopoxvirus-cvx` - Orthopoxvirus vaccines (CVX codes)
-- `immunization-all-cvx` - All immunizations (CVX codes)
-- `immunization-all-icd11` - All immunizations (ICD-11 codes)
-- `immunization-all-snomed` - All immunizations (SNOMED CT codes)
-
-**Lab Test ValueSets:**
-- `lab-qualitative-test-covid` - COVID-19 lab test codes (LOINC)
-- `lab-qualitative-result` - Qualitative lab test results
-
-Stored in `src/fixtures/valuesets/`
-
 ## Patient-Facing App
 
 A React application that allows patients to generate SMART Health Cards from their immunization records.
@@ -228,10 +200,11 @@ npm run dev:app
 ### Features
 
 - **View Immunizations**: Patients can see all their immunization records
-- **Filter by Value Sets**: Filter immunizations by specific vaccine types using SMART Health Cards ValueSets (COVID-19, orthopoxvirus, etc.)
 - **Filter by Date**: Filter immunizations to include only those on or after a specific date
 - **Generate QR Code**: Create a scannable SMART Health Card QR code based on filtered immunizations
 - **Share with Providers**: Healthcare providers can scan the QR code to access the patient's immunization history
+
+Filter by value sets is not supported yet by the frontend app.
 
 ## Resources
 
