@@ -91,25 +91,14 @@ This project uses the [Medplum CLI](https://www.medplum.com/docs/bots/bots-in-pr
    
    This creates the `$health-cards-issue` operation definition that links to your bot (by the name `health-cards-demo-bot`).
 
-6. **Deploy SMART Health Cards Terminology (CodeSystems and ValueSets):**
-   ```bash
-   npm run deploy:valuesets
-   ```
-   
-   This uploads the SMART Health Cards terminology to your Medplum instance:
-   - **CodeSystems**: ICD-11 codes for vaccine identification
-   - **ValueSets**: Filter sets for specific vaccine types (COVID-19, orthopoxvirus, etc.)
-   
-   These enable proper ValueSet expansion and filtering of immunizations.
-
-7. **Manually set the bot as `system` in the Medplum App:**
+6. **Manually set the bot as `system` in the Medplum App:**
    - Go to the Bots listing page in [Medplum App](https://app.medplum.com/Bot)
    - Find your bot and click on it
    - Click on the "Edit" button
    - Mark the "System" checkbox
    - Click on the "Update" button
 
-8. **Set the Patient user access policy for executing the custom FHIR operation:**
+7. **Set the Patient user access policy for executing the custom FHIR operation:**
    - Ensure your Medplum project has the proper [Access Policy](https://www.medplum.com/docs/access/access-policies#patient-access) for Patients. Patient users must have access to the `Bot` and `OperationDefinition` resources to execute the health card generation bot. Check the file [`patient-access-policy.json`](./patient-access-policy.json) for the policy you can use in your project. Go to the [app.medplum.com Access Policy page](https://app.medplum.com/AccessPolicy), create an Access Policy, and use the "JSON" tab to set the policy JSON.
 
 ### Updating the Bot
@@ -212,8 +201,6 @@ Stored in `src/fixtures/codesystems/`
 - `lab-qualitative-result` - Qualitative lab test results
 
 Stored in `src/fixtures/valuesets/`
-
-All terminology resources are deployed to Medplum using `npm run deploy:valuesets`.
 
 ## Patient-Facing App
 

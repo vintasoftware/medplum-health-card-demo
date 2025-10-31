@@ -24,11 +24,6 @@ If you haven't already done so, follow the instructions in [this tutorial](https
    - `SHC_ISSUER`: Your issuer URL
    - `HEALTH_CARD_PRIVATE_KEY`: ES256 private key
    - `HEALTH_CARD_PUBLIC_KEY`: ES256 public key
-4. Deploy the SMART Health Cards ValueSets to your Medplum instance:
-   ```bash
-   npm run deploy:valuesets
-   ```
-   This enables filtering by specific vaccine types in the app.
 
 #### Configuration
 
@@ -70,20 +65,7 @@ npm run dev
 
 1. Sign in as a Patient user
 2. Click on "My Health Cards" in the sidebar
-3. (Optional) Filter your immunizations:
-   - Select value sets to filter by specific vaccine types (e.g., COVID-19, orthopoxvirus)
+3. (Optional) Filter your immunizations by date:
    - Set a "since" date to include only recent immunizations
-4. Click "Generate Health Card" to create a health card with the filtered immunizations
+4. Click "Generate Health Card" to create a health card with your immunizations
 5. Scan the QR code with a SMART Health Card reader app
-
-Note: If no filters are applied, all immunizations will be included in the health card.
-
-### About Medplum
-
-[Medplum](https://www.medplum.com/) is an open-source, API-first EHR. Medplum makes it easy to build healthcare apps quickly with less code.
-
-Medplum supports self-hosting, and provides a [hosted service](https://app.medplum.com/). Medplum Hello World uses the hosted service as a backend.
-
-- Read our [documentation](https://www.medplum.com/docs)
-- Browse our [react component library](https://storybook.medplum.com/)
-- Join our [Discord](https://discord.gg/medplum)

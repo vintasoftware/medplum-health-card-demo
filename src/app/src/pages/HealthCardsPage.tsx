@@ -7,7 +7,6 @@ import {
   CopyButton,
   Group,
   Loader,
-  MultiSelect,
   Stack,
   Text,
   Textarea,
@@ -40,183 +39,10 @@ import type { JSX } from "react";
 import { useEffect, useState } from "react";
 import sampleImmunizationsData from "../data/sampleImmunizations.json";
 
-// SMART Health Cards ValueSets
-// Source: https://terminology.smarthealth.cards/artifacts.html#terminology-value-sets
-const AVAILABLE_VALUE_SETS = [
-  {
-    group: "COVID-19 Immunizations",
-    items: [
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-covid-all",
-        label: "COVID-19 Vaccines (All Codes)",
-      },
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-covid-cvx",
-        label: "COVID-19 Vaccines (CVX)",
-      },
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-covid-icd11",
-        label: "COVID-19 Vaccines (ICD-11)",
-      },
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-covid-snomed",
-        label: "COVID-19 Vaccines (SNOMED CT)",
-      },
-    ],
-  },
-  {
-    group: "Orthopoxvirus Immunizations",
-    items: [
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-orthopoxvirus-all",
-        label: "Orthopoxvirus Vaccines (All Codes)",
-      },
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-orthopoxvirus-cvx",
-        label: "Orthopoxvirus Vaccines (CVX)",
-      },
-    ],
-  },
-  {
-    group: "All Immunizations",
-    items: [
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-all-cvx",
-        label: "All Immunizations (CVX)",
-      },
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-all-icd11",
-        label: "All Immunizations (ICD-11)",
-      },
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/immunization-all-snomed",
-        label: "All Immunizations (SNOMED CT)",
-      },
-    ],
-  },
-  {
-    group: "Laboratory Tests",
-    items: [
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/lab-qualitative-test-covid",
-        label: "COVID-19 Lab Tests (LOINC)",
-      },
-      {
-        value:
-          "https://terminology.smarthealth.cards/ValueSet/lab-qualitative-result",
-        label: "Qualitative Lab Results",
-      },
-    ],
-  },
-];
-
-type CanonicalCode = `${string}|${string}`;
-
-// Helper function to extract codes from ValueSet expansion
-function extractCodesFromExpansion(result: {
-  expansion?: {
-    contains?: {
-      system?: string;
-      code?: string;
-      concept?: { code?: string }[];
-    }[];
-  };
-}): CanonicalCode[] {
-  const contains = result?.expansion?.contains ?? [];
-  const codes: CanonicalCode[] = [];
-
-  for (const item of contains) {
-    if (item.system && item.code) {
-      codes.push(`${item.system}|${item.code}`);
-    }
-    if (Array.isArray(item.concept)) {
-      for (const c of item.concept) {
-        if (c.code && item.system) {
-          codes.push(`${item.system}|${c.code}`);
-        }
-      }
-    }
-  }
-  return codes;
-}
-
-// Helper function to extract canonical codes from immunization
-function extractCodingsFromImmunization(
-  immunization: Immunization
-): CanonicalCode[] {
-  const codings = immunization.vaccineCode?.coding ?? [];
-  const codes = codings
-    .map((coding) => {
-      if (coding.system && coding.code) {
-        return `${coding.system}|${coding.code}` as CanonicalCode;
-      }
-      return null;
-    })
-    .filter((code): code is CanonicalCode => code !== null);
-
-  if (codes.length > 0) {
-    console.log(`Immunization ${immunization.id} has codes:`, codes);
-  }
-
-  return codes;
-}
-
-// Helper function to filter immunizations by expanded value sets
-function filterImmunizationsByValueSets(
-  immunizations: Immunization[],
-  expandedValueSets: CanonicalCode[][]
-): Immunization[] {
-  if (!expandedValueSets.length) {
-    return immunizations;
-  }
-
-  const filtered = immunizations.filter((imm) => {
-    const immunizationCodes = extractCodingsFromImmunization(imm);
-    if (immunizationCodes.length === 0) {
-      console.log(`Immunization ${imm.id} has no codes, excluding`);
-      return false;
-    }
-
-    // All value sets must match (AND logic)
-    for (const vs of expandedValueSets) {
-      const matched = immunizationCodes.some((code) => vs.includes(code));
-      if (!matched) {
-        console.log(
-          `Immunization ${imm.id} with codes [${immunizationCodes.join(
-            ", "
-          )}] doesn't match ValueSet with ${vs.length} codes`
-        );
-        return false;
-      }
-    }
-    console.log(`Immunization ${imm.id} matches all value sets`);
-    return true;
-  });
-
-  console.log(
-    `Filtered ${filtered.length} of ${immunizations.length} immunizations`
-  );
-  return filtered;
-}
-
 export function HealthCardsPage(): JSX.Element {
   const medplum = useMedplum();
   const profile = useMedplumProfile() as Patient;
   const [immunizations, setImmunizations] = useState<Immunization[]>([]);
-  const [selectedValueSets, setSelectedValueSets] = useState<string[]>([]);
-  const [expandedValueSets, setExpandedValueSets] = useState<CanonicalCode[][]>(
-    []
-  );
   const [sinceDate, setSinceDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -225,47 +51,6 @@ export function HealthCardsPage(): JSX.Element {
   const [shcNumeric, setShcNumeric] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [creatingSamples, setCreatingSamples] = useState(false);
-
-  // Expand selected ValueSets
-  useEffect(() => {
-    if (selectedValueSets.length === 0) {
-      setExpandedValueSets([]);
-      return;
-    }
-
-    const expandValueSets = async () => {
-      try {
-        const expanded = await Promise.all(
-          selectedValueSets.map(async (vsUri) => {
-            try {
-              const vs = await medplum.valueSetExpand({
-                url: vsUri as string,
-              });
-
-              const codes = extractCodesFromExpansion(vs);
-              console.log(`Expanded ValueSet ${vsUri}:`, codes.length, "codes");
-              return codes;
-            } catch (err) {
-              console.error(`Error expanding ValueSet ${vsUri}:`, err);
-              return [];
-            }
-          })
-        );
-        setExpandedValueSets(expanded);
-        console.log(
-          "Total expanded value sets:",
-          expanded.length,
-          "with codes:",
-          expanded.map((vs) => vs.length)
-        );
-      } catch (err) {
-        console.error("Error expanding ValueSets:", err);
-        setExpandedValueSets([]);
-      }
-    };
-
-    expandValueSets();
-  }, [medplum, selectedValueSets]);
 
   // Load patient's immunizations with date filter
   useEffect(() => {
@@ -343,12 +128,9 @@ export function HealthCardsPage(): JSX.Element {
     }
   };
 
-  // Filter immunizations based on selected ValueSets
   // Date filtering is already applied in the search query
-  const filteredImmunizations = filterImmunizationsByValueSets(
-    immunizations,
-    expandedValueSets
-  );
+  // ValueSet filtering is handled server-side by the bot
+  const filteredImmunizations = immunizations;
 
   const handleGenerateHealthCard = async (): Promise<void> => {
     if (filteredImmunizations.length === 0) {
@@ -380,11 +162,6 @@ export function HealthCardsPage(): JSX.Element {
             name: "credentialType",
             valueUri: "Immunization",
           },
-          // Add credentialValueSet parameters
-          ...selectedValueSets.map((vsUrl) => ({
-            name: "credentialValueSet" as const,
-            valueUri: vsUrl,
-          })),
           // Add _since parameter if date is selected
           ...(sinceDate
             ? [
@@ -607,17 +384,6 @@ export function HealthCardsPage(): JSX.Element {
                 <Text fw={500}>Filter Immunizations</Text>
               </Group>
 
-              <MultiSelect
-                label="Value Sets"
-                placeholder="Select value sets to filter by (optional)"
-                data={AVAILABLE_VALUE_SETS}
-                value={selectedValueSets}
-                onChange={setSelectedValueSets}
-                searchable
-                clearable
-                description="Filter by specific vaccine types or categories"
-              />
-
               <DateInput
                 label="Since Date"
                 placeholder="Select a date"
@@ -633,16 +399,15 @@ export function HealthCardsPage(): JSX.Element {
                   Showing {filteredImmunizations.length} of{" "}
                   {immunizations.length} immunizations
                 </Text>
-                {(selectedValueSets.length > 0 || sinceDate) && (
+                {sinceDate && (
                   <Button
                     variant="subtle"
                     size="xs"
                     onClick={() => {
-                      setSelectedValueSets([]);
                       setSinceDate(null);
                     }}
                   >
-                    Clear Filters
+                    Clear Date Filter
                   </Button>
                 )}
               </Group>

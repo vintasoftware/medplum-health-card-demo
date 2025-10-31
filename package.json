@@ -15,7 +15,6 @@
     "build:bots": "npm run clean:bots && tsc --project tsconfig-bots.json && node --no-warnings esbuild-script.mjs",
     "build:app": "npm run build --workspace=src/app",
     "deploy:operation": "npx ts-node --project tsconfig-deploy.json src/scripts/deploy-operation.ts",
-    "deploy:valuesets": "npx ts-node --project tsconfig-deploy.json src/scripts/deploy-valuesets.ts",
     "clean": "npm run clean:bots && npm run clean:app",
     "clean:bots": "rimraf dist",
     "clean:app": "npm run clean --workspace=src/app --if-present",
