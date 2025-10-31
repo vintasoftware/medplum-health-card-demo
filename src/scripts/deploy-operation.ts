@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { MedplumClient } from "@medplum/core";
+import type { OperationDefinition } from "@medplum/fhirtypes";
 import fs from "node:fs/promises";
 import path from "node:path";
 
@@ -44,24 +46,13 @@ async function main() {
 
   console.log(`✅ Found bot ID: ${botId}`);
 
-  console.log("🔑 Getting access token...");
-  const tokenRes = await fetch(`${baseUrl}/oauth2/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "client_credentials",
-      client_id: clientId,
-      client_secret: clientSecret,
-    }),
+  console.log("🔑 Authenticating with Medplum...");
+  const medplum = new MedplumClient({
+    baseUrl,
   });
 
-  if (!tokenRes.ok) {
-    const errText = await tokenRes.text();
-    throw new Error(`Failed to get token: ${tokenRes.status} ${errText}`);
-  }
-
-  const { access_token } = (await tokenRes.json()) as { access_token: string };
-  console.log("✅ Token obtained");
+  await medplum.startClientLogin(clientId, clientSecret);
+  console.log("✅ Authenticated successfully");
 
   console.log("📦 Loading operation definition...");
   const operationPath = path.join(
@@ -74,26 +65,32 @@ async function main() {
     botId
   );
 
-  console.log("➡️ Deploying operation definition to Medplum...");
-  const operationRes = await fetch(`${baseUrl}/fhir/R4/OperationDefinition`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${access_token}`,
-      "Content-Type": "application/fhir+json",
-    },
-    body: operationJsonWithBotId,
+  console.log("🔍 Checking if operation definition already exists...");
+  const operationDef = JSON.parse(
+    operationJsonWithBotId
+  ) as OperationDefinition;
+
+  const searchBundle = await medplum.search("OperationDefinition", {
+    code: operationDef.code,
   });
 
-  const operationResponse = await operationRes.text();
-  if (!operationRes.ok) {
-    console.error("❌ Operation deploy failed:");
-    console.error(`Status: ${operationRes.status}`);
-    console.error(operationResponse);
-    process.exit(1);
-  }
+  const existingOpDef = searchBundle.entry?.[0]?.resource;
 
-  console.log("✅ Operation deploy completed successfully!");
-  console.log("Operation response:\n", operationResponse);
+  if (existingOpDef?.id) {
+    console.log(
+      `📝 Found existing operation definition with ID: ${existingOpDef.id}`
+    );
+    console.log("➡️ Updating operation definition...");
+    operationDef.id = existingOpDef.id;
+    const updatedOpDef = await medplum.updateResource(operationDef);
+    console.log("✅ Operation definition updated successfully!");
+    console.log("Operation ID:", updatedOpDef.id);
+  } else {
+    console.log("➡️ Creating new operation definition...");
+    const createdOpDef = await medplum.createResource(operationDef);
+    console.log("✅ Operation definition created successfully!");
+    console.log("Operation ID:", createdOpDef.id);
+  }
 }
 
 main().catch((err) => {
