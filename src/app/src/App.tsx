@@ -52,7 +52,16 @@ export function App(): JSX.Element | null {
               }
             />
             <Route path="/signin" element={<SignInPage />} />
-            <Route path="/health-cards" element={<HealthCardsPage />} />
+            <Route
+              path="/health-cards"
+              element={
+                profile ? (
+                  <HealthCardsPage />
+                ) : (
+                  <Navigate to="/signin" replace />
+                )
+              }
+            />
           </Routes>
         </Suspense>
       </ErrorBoundary>
