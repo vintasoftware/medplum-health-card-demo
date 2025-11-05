@@ -249,17 +249,17 @@ export const unsupportedCredentialTypeParameters: Parameters = {
 export const testSecrets = {
   SHC_ISSUER: {
     name: "SHC_ISSUER",
-    valueString: "https://example.com/issuer",
-  },
-  HEALTH_CARD_PRIVATE_KEY: {
-    name: "HEALTH_CARD_PRIVATE_KEY",
-    valueString:
-      "-----BEGIN PRIVATE KEY-----\\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...\\n-----END PRIVATE KEY-----",
+    valueString: "https://spec.smarthealth.cards/examples/issuer",
   },
   HEALTH_CARD_PUBLIC_KEY: {
     name: "HEALTH_CARD_PUBLIC_KEY",
     valueString:
-      "-----BEGIN PUBLIC KEY-----\\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...\\n-----END PUBLIC KEY-----",
+      '{"kty": "EC","kid": "3Kfdg-XwP-7gXyywtUfUADwBumDOPKMQx-iELL11W9s","use": "sig","alg": "ES256","crv": "P-256","x": "11XvRWy1I2S0EyJlyf_bWfw_TQ5CJJNLw78bHXNxcgw","y": "eZXwxvO1hvCY0KucrPfKo7yAyMT6Ajc3N7OkAB6VYy8","crlVersion": 1}',
+  },
+  HEALTH_CARD_PRIVATE_KEY: {
+    name: "HEALTH_CARD_PRIVATE_KEY",
+    valueString:
+      '{"kty": "EC","kid": "3Kfdg-XwP-7gXyywtUfUADwBumDOPKMQx-iELL11W9s","use": "sig","alg": "ES256","crv": "P-256","x": "11XvRWy1I2S0EyJlyf_bWfw_TQ5CJJNLw78bHXNxcgw","y": "eZXwxvO1hvCY0KucrPfKo7yAyMT6Ajc3N7OkAB6VYy8","d": "FvOOk6hMixJ2o9zt4PCfan_UW7i4aOEnzj76ZaCI9Og"}',
   },
 };
 
