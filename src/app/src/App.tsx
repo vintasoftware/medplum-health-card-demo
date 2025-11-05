@@ -25,6 +25,7 @@ export function App(): JSX.Element | null {
   return (
     <AppShell
       logo={<Logo size={24} />}
+      headerSearchDisabled={true}
       menus={[
         {
           title: "My Links",
