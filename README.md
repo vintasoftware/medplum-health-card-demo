@@ -94,8 +94,8 @@ This project uses the [Medplum CLI](https://www.medplum.com/docs/bots/bots-in-pr
    
    This creates the `$health-cards-issue` operation definition that links to your bot (by the name `health-cards-demo-bot`).
 
-6. **Manually set the bot as `system` in the Medplum App:**
-   - Go to the Bots listing page in [Medplum App](https://app.medplum.com/Bot)
+6. **Manually set the bot as `system`:**
+   - Go to the [Bots listing page in app.medplum.com](https://app.medplum.com/Bot)
    - Find your bot and click on it
    - Click on the "Edit" button
    - Mark the "System" checkbox
@@ -128,18 +128,35 @@ HEALTH_CARD_PRIVATE_KEY={"kty": "EC","kid": "3Kfdg-XwP-7gXyywtUfUADwBumDOPKMQx-i
 
 ### Set Secrets in Medplum
 
-1. Go to the "Secrets" page in [Medplum App](https://app.medplum.com/admin/secrets)
-2. Add the three secrets with the example values
+1. Go to the ["Secrets" page in app.medplum.com](https://app.medplum.com/admin/secrets)
+2. Add the three secrets with the example values (see above)
 
 ## Patient-Facing App Configuration
 
 A React application that allows patients to generate SMART Health Cards from their immunization records.
 
-#### Prerequisites
+### Prerequisites
 
 Before running the app, deploy the health cards bot (see [Bot Deployment](#bot-deployment) section above).
 
-#### Configuration
+### Set up open patient registration
+
+To allow patients to self-register, set the patient access policy as the default.
+
+1. Navigate to [app.medplum.com Project page](https://app.medplum.com/Project) and select your project.
+2. In the "Edit" tab, set the "Default Patient Access Policy" field to your patient access policy and click "Update".
+
+For more details, see the [Open Patient Registration documentation](https://www.medplum.com/docs/user-management/open-patient-registration).
+
+#### Set up reCAPTCHA
+
+A reCAPTCHA configuration is required for the registration form to work.
+
+1. Create a new reCAPTCHA configuration to get the site key and secret key at [google.com/recaptcha/admin/create](https://www.google.com/recaptcha/admin/create).
+2. Go to [app.medplum.com](https://app.medplum.com), go to Project, then Sites. Create a Site with domains `localhost` and `127.0.0.1` and set the reCAPTCHA site key and secret key.
+3. Keep the reCAPTCHA site key at hand to set it as an environment variable (see the next section).
+
+### App environment variables
 
 Inside the `src/app` directory, copy the `.env.defaults` file to `.env` and configure the environment variables:
 
@@ -153,6 +170,8 @@ Add the following to your `.env` file:
 ```bash
 MEDPLUM_BASE_URL=https://api.medplum.com  # or your Medplum server URL
 MEDPLUM_CLIENT_ID=your-client-id
+MEDPLUM_PROJECT_ID=your-project-id  # Required for patient registration
+MEDPLUM_RECAPTCHA_SITE_KEY=your-recaptcha-site-key  # Required for patient registration
 ```
 
 #### Install and Run
@@ -178,10 +197,9 @@ npm run dev
 
 ### Using the App
 
-1. Sign in as a Patient user
-2. Click on "My Health Cards" in the sidebar
-3. (Optional) Filter your immunizations by date:
-   - Set a "since" date to include only recent immunizations
+1. **New users**: Click "Sign in" and then "Register here" to create a new patient account
+2. **Existing users**: Sign in as a Patient user
+3. (Optional) Filter your immunizations by date
 4. Click "Generate Health Card" to create a health card with your immunizations
 5. Scan the QR code with a SMART Health Card reader app
 

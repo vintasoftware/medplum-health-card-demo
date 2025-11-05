@@ -12,10 +12,7 @@ export function LandingPage(): JSX.Element {
           This patient-facing application allows you to generate SMART Health
           Cards from your immunization records. You can select which
           immunizations to include and generate QR codes that can be scanned by
-          healthcare providers. If you haven't already done so,{" "}
-          <Anchor href="https://app.medplum.com/register">register</Anchor> for
-          a Medplum Project. After that you can sign into your project by
-          clicking the link below.
+          healthcare providers.
         </Text>
         <Button component={Link} to="/signin">
           Sign in
