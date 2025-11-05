@@ -1,8 +1,10 @@
-# SMART Health Card Demo
+# Medplum SMART Health Card Demo
 
 A Medplum Application + Bot that issues SMART Health Cards using the FHIR Operation `$health-cards-issue` as defined by the [Issue Verifiable Credential FHIR spec](https://hl7.org/fhir/uv/smart-health-cards-and-links/OperationDefinition-patient-i-health-cards-issue.html).
 
 Uses the library [kill-the-clipboard](https://github.com/vintasoftware/kill-the-clipboard).
+
+<img height="400" alt="Medplum SMART Health Card Demo" src="https://github.com/user-attachments/assets/b6aec316-c2a4-4852-a7ab-8fd38b6f0784" />
 
 ## Features
 
