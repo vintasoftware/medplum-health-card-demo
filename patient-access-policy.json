@@ -62,10 +62,12 @@
       "resourceType": "Binary"
     },
     {
-      "resourceType": "Bot"
+      "resourceType": "Bot",
+      "readonly": true
     },
     {
-      "resourceType": "OperationDefinition"
+      "resourceType": "OperationDefinition",
+      "readonly": true
     }
   ]
 }

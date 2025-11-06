@@ -54,15 +54,6 @@ If you haven't already done so, follow the instructions in [this tutorial](https
 
 This project uses the [Medplum CLI](https://www.medplum.com/docs/bots/bots-in-production) for bot management. Follow these steps to deploy your bot:
 
-### Prerequisites
-
-1. Create a [Client Application](https://www.medplum.com/docs/bots/bots-in-production#setting-up-your-permissions) in your Medplum project
-2. Copy `.env.example` to `.env` and set your credentials:
-   ```bash
-   cp .env.example .env
-   ```
-3. Edit `.env` and add your `MEDPLUM_CLIENT_ID` and `MEDPLUM_CLIENT_SECRET`
-
 ### Initial Setup (First Time Only)
 
 1. **Build the bot code:**
@@ -96,16 +87,19 @@ This project uses the [Medplum CLI](https://www.medplum.com/docs/bots/bots-in-pr
    
    This creates the `$health-cards-issue` operation definition that links to your bot (by the name `health-cards-demo-bot`).
 
-6. **Manually set the bot as `system`:**
-   - Go to the [Bots listing page in app.medplum.com](https://app.medplum.com/Bot)
-   - Find your bot and click on it
-   - Click on the "Edit" button
-   - Mark the "System" checkbox
-   - Click on the "Update" button
-   - This is necessary to allow the bot to access the SHC secret key.
+6. **Set the bot as `system`:**
+   ```bash
+   npx medplum patch Bot/<BOT_ID> '[{"op":"add","path":"/system","value":true}]'
+   ```
+   
+   Replace `<BOT_ID>` with the bot ID from `medplum.config.json` (the `id` field for `health-cards-demo-bot`). This is necessary to allow the bot to access the SHC secret key.
 
 7. **Set the Patient user access policy for executing the custom FHIR operation:**
-   - Ensure your Medplum project has the proper [Access Policy](https://www.medplum.com/docs/access/access-policies#patient-access) for Patients. Patient users must have access to the `Bot` and `OperationDefinition` resources to execute the health card generation bot. Check the file [`patient-access-policy.json`](./patient-access-policy.json) for the policy you can use in your project. Go to the [app.medplum.com Access Policy page](https://app.medplum.com/AccessPolicy), create an Access Policy, and use the "JSON" tab to set the policy JSON.
+   ```bash
+   npx medplum post AccessPolicy "$(cat patient-access-policy.json)"
+   ```
+   
+   This creates an Access Policy that allows Patient users to access the `Bot` and `OperationDefinition` resources needed to execute the health card generation bot.
 
 8. **Configure the bot secrets:**
    - See the section [Bot Secrets Configuration](#bot-secrets-configuration) below.
@@ -150,7 +144,7 @@ To allow patients to self-register, set the patient access policy as the default
 
 For more details, see the [Open Patient Registration documentation](https://www.medplum.com/docs/user-management/open-patient-registration).
 
-#### Set up reCAPTCHA
+### Set up reCAPTCHA
 
 A reCAPTCHA configuration is required for the registration form to work.
 
@@ -160,14 +154,17 @@ A reCAPTCHA configuration is required for the registration form to work.
 
 ### App environment variables
 
-Inside the `src/app` directory, copy the `.env.defaults` file to `.env` and configure the environment variables:
+Create a Client Application in your Medplum project to get the client ID and secret:
+
+1. Create a [Client Application in your Medplum project](https://app.medplum.com/admin/clients)
+2. Inside the `src/app` directory, copy the `.env.defaults` file to `.env` and configure the environment variables:
 
 ```bash
 cd src/app
 cp .env.defaults .env
 ```
 
-Add the following to your `.env` file:
+3. Add the following to your `.env` file:
 
 ```bash
 MEDPLUM_BASE_URL=https://api.medplum.com  # or your Medplum server URL
@@ -176,7 +173,7 @@ MEDPLUM_PROJECT_ID=your-project-id  # Required for patient registration
 MEDPLUM_RECAPTCHA_SITE_KEY=your-recaptcha-site-key  # Required for patient registration
 ```
 
-#### Install and Run
+### Install and Run
 
 From the **root directory**:
 

@@ -1,8 +1,11 @@
-import "dotenv/config";
 import { MedplumClient } from "@medplum/core";
 import type { OperationDefinition } from "@medplum/fhirtypes";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import fs from "node:fs/promises";
 import path from "node:path";
+
+const execAsync = promisify(exec);
 
 interface BotConfig {
   name: string;
@@ -16,14 +19,22 @@ interface MedplumConfig {
 }
 
 async function main() {
-  console.log("🔍 Checking environment...");
   const baseUrl = process.env.MEDPLUM_BASE_URL ?? "https://api.medplum.com";
-  const clientId = process.env.MEDPLUM_CLIENT_ID;
-  const clientSecret = process.env.MEDPLUM_CLIENT_SECRET;
 
-  if (!clientId || !clientSecret) {
-    throw new Error("❌ Missing MEDPLUM_CLIENT_ID or MEDPLUM_CLIENT_SECRET");
+  console.log("🔑 Getting access token from Medplum CLI...");
+  let accessToken: string;
+  try {
+    const { stdout } = await execAsync("npx medplum token");
+    accessToken = stdout.trim();
+    if (!accessToken) {
+      throw new Error("❌ Failed to get access token from Medplum CLI");
+    }
+  } catch (error) {
+    throw new Error(
+      `❌ Failed to get access token from Medplum CLI. Make sure you're logged in with 'medplum login': ${error}`
+    );
   }
+  console.log("✅ Got access token successfully");
 
   console.log("📖 Reading medplum.config.json...");
   const configPath = path.join(process.cwd(), "medplum.config.json");
@@ -46,13 +57,10 @@ async function main() {
 
   console.log(`✅ Found bot ID: ${botId}`);
 
-  console.log("🔑 Authenticating with Medplum...");
   const medplum = new MedplumClient({
     baseUrl,
+    accessToken,
   });
-
-  await medplum.startClientLogin(clientId, clientSecret);
-  console.log("✅ Authenticated successfully");
 
   console.log("📦 Loading operation definition...");
   const operationPath = path.join(
