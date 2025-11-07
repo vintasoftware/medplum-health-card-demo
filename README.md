@@ -281,6 +281,43 @@ npm run preview:app
 npm run lint:app:fix
 ```
 
+### Deployment to GitHub Pages
+
+This project includes a GitHub Actions workflow to automatically deploy the patient-facing app to GitHub Pages.
+
+### Setup
+
+1. **Enable GitHub Pages for your repository:**
+   - Go to your repository Settings → Pages
+   - Under "Build and deployment", select "GitHub Actions" as the source
+
+2. **Configure GitHub Secrets:**
+   
+   Add the following secrets to your repository (Settings → Secrets and variables → Actions → New repository secret):
+   
+   - `MEDPLUM_BASE_URL`: e.g., `https://api.medplum.com`
+   - `MEDPLUM_CLIENT_ID`
+   - `MEDPLUM_PROJECT_ID`
+   - `MEDPLUM_RECAPTCHA_SITE_KEY`
+
+3. **Configure base path (if needed):**
+   
+   If your repository is hosted at `https://username.github.io/repository-name/` (not at a custom domain or root), you'll need to update the Vite config in `src/app/vite.config.ts` to set the base path:
+   
+   ```typescript
+   export default defineConfig({
+     base: '/repository-name/',  // Add this line
+     // ... rest of config
+   })
+   ```
+
+### Deployment
+
+The workflow automatically deploys when you push to the `main` branch, or you can manually trigger it from the Actions tab in your GitHub repository.
+
+After deployment, your app will be available at:
+- `https://username.github.io/repository-name/` (for project pages)
+
 ## See also
 
 For larger FHIR bundles, prefer using SMART Health Links. The [Kill the Clipboard Library](https://github.com/vintasoftware/kill-the-clipboard) also supports SMART Health Link generation and it provides a [Medplum Demo project](https://github.com/vintasoftware/kill-the-clipboard/tree/main/demo/medplum-shl#readme).

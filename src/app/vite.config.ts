@@ -17,6 +17,7 @@ dns.setDefaultResultOrder("verbatim");
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: "/medplum-health-card-demo/",
   envPrefix: ["MEDPLUM_", "GOOGLE_", "HEALTH_CARD_"],
   plugins: [react()],
   server: {
