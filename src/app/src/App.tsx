@@ -1,3 +1,4 @@
+import { Anchor, Box, Text } from "@mantine/core";
 import {
   AppShell,
   ErrorBoundary,
@@ -6,7 +7,7 @@ import {
   useMedplum,
   useMedplumProfile,
 } from "@medplum/react";
-import { IconQrcode } from "@tabler/icons-react";
+import { IconBrandGithub, IconQrcode } from "@tabler/icons-react";
 import type { JSX } from "react";
 import { Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router";
@@ -41,29 +42,52 @@ export function App(): JSX.Element | null {
     >
       <ErrorBoundary>
         <Suspense fallback={<Loading />}>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                profile ? (
-                  <Navigate to="/health-cards" replace />
-                ) : (
-                  <LandingPage />
-                )
-              }
-            />
-            <Route path="/signin" element={<SignInPage />} />
-            <Route
-              path="/health-cards"
-              element={
-                profile ? (
-                  <HealthCardsPage />
-                ) : (
-                  <Navigate to="/signin" replace />
-                )
-              }
-            />
-          </Routes>
+          <Box pb={40}>
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  profile ? (
+                    <Navigate to="/health-cards" replace />
+                  ) : (
+                    <LandingPage />
+                  )
+                }
+              />
+              <Route path="/signin" element={<SignInPage />} />
+              <Route
+                path="/health-cards"
+                element={
+                  profile ? (
+                    <HealthCardsPage />
+                  ) : (
+                    <Navigate to="/signin" replace />
+                  )
+                }
+              />
+            </Routes>
+          </Box>
+          <Box
+            pos="fixed"
+            bottom={0}
+            left={0}
+            right={0}
+            p="md"
+            ta="center"
+            bg="var(--mantine-color-body)"
+            style={{ borderTop: "1px solid var(--mantine-color-gray-3)" }}
+          >
+            <Text>
+              Code available on{" "}
+              <Anchor
+                href="https://github.com/vintasoftware/medplum-health-card-demo"
+                target="_blank"
+              >
+                <IconBrandGithub size={16} />
+                GitHub
+              </Anchor>
+            </Text>
+          </Box>
         </Suspense>
       </ErrorBoundary>
     </AppShell>
