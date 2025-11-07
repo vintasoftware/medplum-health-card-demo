@@ -39,7 +39,7 @@ const container = document.getElementById("root") as HTMLDivElement;
 const root = createRoot(container);
 root.render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL || ""}>
       <MedplumProvider medplum={medplum}>
         <MantineProvider theme={theme}>
           <App />
