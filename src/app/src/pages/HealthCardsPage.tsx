@@ -1,15 +1,11 @@
 import {
   Alert,
-  Anchor,
-  Box,
   Button,
   Card,
-  CopyButton,
   Group,
   Loader,
   Stack,
   Text,
-  Textarea,
   Title,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
@@ -21,28 +17,257 @@ import type {
   ParametersParameter,
   Patient,
 } from "@medplum/fhirtypes";
-import {
-  Document,
-  ResourceBadge,
-  useMedplum,
-  useMedplumProfile,
-} from "@medplum/react";
+import { Document, useMedplum, useMedplumProfile } from "@medplum/react";
 import {
   IconAlertCircle,
   IconCalendar,
-  IconExternalLink,
   IconFilter,
   IconQrcode,
 } from "@tabler/icons-react";
 import { SHCReader } from "kill-the-clipboard";
 import type { JSX } from "react";
 import { useEffect, useState } from "react";
+import { ImmunizationCard } from "../components/ImmunizationCard";
+import { QRCodeDisplay } from "../components/QRCodeDisplay";
 import sampleImmunizationsData from "../data/sampleImmunizations.json";
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Build search parameters for immunization queries
+ */
+function buildSearchParams(
+  profileId: string,
+  sinceDate: Date | null
+): Record<string, string> {
+  const searchParams: Record<string, string> = {
+    patient: `Patient/${profileId}`,
+    _sort: "-date",
+  };
+
+  // Apply date filter in the search query
+  if (sinceDate) {
+    searchParams.date = `ge${sinceDate.toISOString().split("T")[0]}`;
+  }
+
+  return searchParams;
+}
+
+/**
+ * Build parameters for the $health-cards-issue operation
+ */
+function buildHealthCardParameters(
+  profileId: string,
+  sinceDate: Date | null
+): Parameters {
+  return {
+    resourceType: "Parameters",
+    parameter: [
+      {
+        name: "subject",
+        valueReference: { reference: `Patient/${profileId}` },
+      },
+      {
+        name: "credentialType",
+        valueUri: "Immunization",
+      },
+      // Add _since parameter if date is selected
+      ...(sinceDate
+        ? [
+            {
+              name: "_since" as const,
+              valueDateTime: sinceDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
+            },
+          ]
+        : []),
+    ],
+  };
+}
+
+/**
+ * Extract JWS value from the Parameters response
+ */
+function extractJWSFromResponse(response: Parameters): string {
+  const jwsValue = response.parameter?.find(
+    (p: ParametersParameter) => p.name === "verifiableCredential"
+  )?.valueString;
+
+  if (!jwsValue) {
+    throw new Error(
+      "No verifiable credential returned from the health card operation."
+    );
+  }
+
+  return jwsValue;
+}
+
+/**
+ * Generate QR codes from JWS value
+ */
+async function generateQRCodes(
+  jwsValue: string
+): Promise<{ qrCodeUrls: string[]; shcNumeric: string[] }> {
+  const reader = new SHCReader({
+    strictReferences: false,
+  });
+
+  // Create a health card from the JWS
+  const healthCard = await reader.fromJWS(jwsValue);
+
+  console.log(await healthCard.asBundle());
+
+  // Generate QR code
+  const qrCodes = await healthCard.asQR({
+    enableChunking: true,
+  });
+
+  if (qrCodes.length === 0) {
+    throw new Error("Failed to generate QR code from health card.");
+  }
+
+  // Generate numeric QR code string (shc:/...)
+  const numericCodes = healthCard.asQRNumeric();
+
+  return {
+    qrCodeUrls: qrCodes,
+    shcNumeric: numericCodes,
+  };
+}
+
+// ============================================================================
+// Sub-Components
+// ============================================================================
+
+interface FilterControlsProps {
+  sinceDate: Date | null;
+  onSinceDateChange: (date: Date | null) => void;
+  filteredCount: number;
+  hasDateFilter: boolean;
+}
+
+function FilterControls({
+  sinceDate,
+  onSinceDateChange,
+  filteredCount,
+  hasDateFilter,
+}: FilterControlsProps): JSX.Element {
+  return (
+    <Card shadow="xs" padding="md" withBorder>
+      <Stack gap="md">
+        <Group align="flex-start">
+          <IconFilter size={20} />
+          <Text fw={500}>Filter Immunizations</Text>
+        </Group>
+
+        <DateInput
+          label="Since Date"
+          placeholder="Select a date"
+          value={sinceDate}
+          onChange={onSinceDateChange}
+          clearable
+          leftSection={<IconCalendar size={16} />}
+          description="Only include immunizations on or after this date"
+        />
+
+        <Group justify="space-between">
+          <Text size="sm" c="dimmed">
+            Showing {filteredCount} {hasDateFilter ? "filtered" : ""}{" "}
+            immunization
+            {filteredCount !== 1 ? "s" : ""}
+          </Text>
+          {hasDateFilter && (
+            <Button
+              variant="subtle"
+              size="xs"
+              onClick={() => {
+                onSinceDateChange(null);
+              }}
+            >
+              Clear Date Filter
+            </Button>
+          )}
+        </Group>
+      </Stack>
+    </Card>
+  );
+}
+
+interface EmptyStateProps {
+  message: string;
+  showButton?: boolean;
+  buttonText?: string;
+  onButtonClick?: () => void;
+  loading?: boolean;
+}
+
+function EmptyState({
+  message,
+  showButton = false,
+  buttonText = "",
+  onButtonClick,
+  loading = false,
+}: EmptyStateProps): JSX.Element {
+  return (
+    <Stack gap="md" align="center" mt="xl">
+      <Text c="dimmed">{message}</Text>
+      {showButton && onButtonClick && (
+        <Button onClick={onButtonClick} loading={loading} variant="light">
+          {buttonText}
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+interface ActionButtonsProps {
+  onAddSample: () => void;
+  onGenerateCard: () => void;
+  isGenerating: boolean;
+  isSamplesLoading: boolean;
+  disabled: boolean;
+  filteredCount: number;
+}
+
+function ActionButtons({
+  onAddSample,
+  onGenerateCard,
+  isGenerating,
+  isSamplesLoading,
+  disabled,
+}: ActionButtonsProps): JSX.Element {
+  return (
+    <Group justify="space-between">
+      <Button
+        variant="subtle"
+        onClick={onAddSample}
+        loading={isSamplesLoading}
+        size="sm"
+      >
+        Add Sample Data
+      </Button>
+      <Button
+        onClick={onGenerateCard}
+        disabled={disabled || isGenerating}
+        leftSection={<IconQrcode size={16} />}
+        loading={isGenerating}
+      >
+        Generate Health Card
+      </Button>
+    </Group>
+  );
+}
+
+// ============================================================================
+// Main Component
+// ============================================================================
 
 export function HealthCardsPage(): JSX.Element {
   const medplum = useMedplum();
   const profile = useMedplumProfile() as Patient;
   const [immunizations, setImmunizations] = useState<Immunization[]>([]);
+  const [hasAnyImmunizations, setHasAnyImmunizations] = useState(false);
   const [sinceDate, setSinceDate] = useState<Date | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
@@ -59,20 +284,27 @@ export function HealthCardsPage(): JSX.Element {
     }
 
     setLoading(true);
-    const searchParams: Record<string, string> = {
-      patient: `Patient/${profile.id}`,
-      _sort: "-date",
-    };
+    const searchParams = buildSearchParams(profile.id, sinceDate);
 
-    // Apply date filter in the search query
-    if (sinceDate) {
-      searchParams.date = `ge${sinceDate.toISOString().split("T")[0]}`;
-    }
+    // First, check if any immunizations exist at all (without date filter)
+    const checkAnyImmunizations = medplum
+      .searchResources("Immunization", {
+        patient: `Patient/${profile.id}`,
+        _count: "1",
+      })
+      .then((results) => {
+        setHasAnyImmunizations(results.length > 0);
+      });
 
-    medplum
+    // Then load the filtered immunizations
+    const loadImmunizations = medplum
       .searchResources("Immunization", searchParams)
       .then((results) => {
         setImmunizations(results);
+      });
+
+    Promise.all([checkAnyImmunizations, loadImmunizations])
+      .then(() => {
         setLoading(false);
       })
       .catch((err) => {
@@ -109,6 +341,7 @@ export function HealthCardsPage(): JSX.Element {
         _sort: "-date",
       });
       setImmunizations(allImmunizations);
+      setHasAnyImmunizations(allImmunizations.length > 0);
 
       notifications.show({
         title: "Success",
@@ -151,28 +384,10 @@ export function HealthCardsPage(): JSX.Element {
 
     try {
       // Build parameters for the $health-cards-issue operation
-      const parameters: Parameters = {
-        resourceType: "Parameters",
-        parameter: [
-          {
-            name: "subject",
-            valueReference: { reference: `Patient/${profile.id}` },
-          },
-          {
-            name: "credentialType",
-            valueUri: "Immunization",
-          },
-          // Add _since parameter if date is selected
-          ...(sinceDate
-            ? [
-                {
-                  name: "_since" as const,
-                  valueDateTime: sinceDate.toISOString().split("T")[0], // Format as YYYY-MM-DD
-                },
-              ]
-            : []),
-        ],
-      };
+      const parameters = buildHealthCardParameters(
+        profile.id as string,
+        sinceDate
+      );
 
       // Invoke the custom FHIR operation to generate the health card
       const response = await medplum.post(
@@ -181,43 +396,16 @@ export function HealthCardsPage(): JSX.Element {
       );
 
       // Extract the verifiable credential (JWS)
-      // NOTE: For now, Medplum custom FHIR operations return a Parameters object with the verifiable credential in the `verifiableCredential` field.
-      const jwsValue = response.parameter?.find(
-        (p: ParametersParameter) => p.name === "verifiableCredential"
-      )?.valueString;
-
-      if (!jwsValue) {
-        throw new Error(
-          "No verifiable credential returned from the health card operation."
-        );
-      }
+      const jwsValue = extractJWSFromResponse(response);
 
       // Store the JWS
       setJws(jwsValue);
 
-      // Use SHCReader to decode and generate QR code
-      const reader = new SHCReader({
-        strictReferences: false,
-      });
-
-      // Create a health card from the JWS
-      const healthCard = await reader.fromJWS(jwsValue);
-
-      console.log(await healthCard.asBundle());
-
-      // Generate QR code
-      const qrCodes = await healthCard.asQR({
-        enableChunking: true,
-      });
-
-      if (qrCodes.length === 0) {
-        throw new Error("Failed to generate QR code from health card.");
-      }
+      // Generate QR codes from JWS
+      const { qrCodeUrls: qrCodes, shcNumeric: numericCodes } =
+        await generateQRCodes(jwsValue);
 
       setQrCodeUrls(qrCodes);
-
-      // Generate numeric QR code string (shc:/...)
-      const numericCodes = healthCard.asQRNumeric();
       setShcNumeric(numericCodes);
 
       notifications.show({
@@ -238,112 +426,21 @@ export function HealthCardsPage(): JSX.Element {
     }
   };
 
-  if (loading) {
-    return (
-      <Document>
-        <Loader />
-      </Document>
-    );
-  }
+  const handleResetQRCode = (): void => {
+    setQrCodeUrls([]);
+    setJws(null);
+    setShcNumeric([]);
+  };
 
   return (
     <Document>
-      {qrCodeUrls.length > 0 && (
-        <Card shadow="md" padding="xl" mb="xl" withBorder>
-          <Stack gap="md">
-            <Title order={2} ta="center">
-              Your SMART Health Card
-            </Title>
-            <Text c="dimmed" size="sm" ta="center">
-              {qrCodeUrls.length === 1
-                ? "Scan this QR code with a SMART Health Card reader app"
-                : `Scan these ${qrCodeUrls.length} QR codes in order with a SMART Health Card reader app`}
-            </Text>
-            {qrCodeUrls.map((qrCodeUrl, index) => (
-              <Box
-                key={qrCodeUrl}
-                style={{
-                  padding: "20px",
-                  backgroundColor: "white",
-                  borderRadius: "8px",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                }}
-              >
-                {qrCodeUrls.length > 1 && (
-                  <Text fw={500} size="sm" mb="xs">
-                    QR Code {index + 1} of {qrCodeUrls.length}
-                  </Text>
-                )}
-                <img
-                  src={qrCodeUrl}
-                  alt={`SMART Health Card QR Code ${index + 1}`}
-                  style={{ maxWidth: "400px", width: "100%" }}
-                />
-              </Box>
-            ))}
-
-            {shcNumeric.length === 1 && (
-              <Stack gap="xs">
-                <Text fw={500} size="sm">
-                  View in External Reader
-                </Text>
-                <Anchor
-                  href={`https://viewer.tcpdev.org/#${shcNumeric[0]}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Group gap="xs">
-                    <Text size="sm">Open in TCP Health Card Viewer</Text>
-                    <IconExternalLink size={14} />
-                  </Group>
-                </Anchor>
-              </Stack>
-            )}
-
-            {jws && (
-              <Stack gap="xs">
-                <Group justify="space-between" align="center">
-                  <Text fw={500} size="sm">
-                    JWS (Verifiable Credential)
-                  </Text>
-                  <CopyButton value={jws}>
-                    {({ copied, copy }) => (
-                      <Button size="xs" variant="light" onClick={copy}>
-                        {copied ? "Copied!" : "Copy"}
-                      </Button>
-                    )}
-                  </CopyButton>
-                </Group>
-                <Textarea
-                  value={jws}
-                  readOnly
-                  autosize
-                  minRows={3}
-                  maxRows={8}
-                  styles={{
-                    input: {
-                      fontFamily: "monospace",
-                      fontSize: "11px",
-                    },
-                  }}
-                />
-              </Stack>
-            )}
-
-            <Button
-              variant="outline"
-              onClick={() => {
-                setQrCodeUrls([]);
-                setJws(null);
-                setShcNumeric([]);
-              }}
-            >
-              Generate Another
-            </Button>
-          </Stack>
-        </Card>
+      {qrCodeUrls.length > 0 && jws && (
+        <QRCodeDisplay
+          qrCodeUrls={qrCodeUrls}
+          shcNumeric={shcNumeric}
+          jws={jws}
+          onReset={handleResetQRCode}
+        />
       )}
 
       <Title order={1}>My Health Cards</Title>
@@ -352,123 +449,75 @@ export function HealthCardsPage(): JSX.Element {
         Filter your immunizations and generate a SMART Health Card with QR code
       </Text>
 
-      {error && (
-        <Alert
-          icon={<IconAlertCircle size={16} />}
-          title="Error"
-          color="red"
-          mb="md"
-        >
-          {error}
-        </Alert>
-      )}
-
-      {immunizations.length === 0 ? (
+      {loading ? (
         <Stack gap="md" align="center" mt="xl">
-          <Text c="dimmed">No immunizations found in your record.</Text>
-          <Button
-            onClick={() => void handleCreateSampleImmunizations()}
-            loading={creatingSamples}
-            variant="light"
-          >
-            Add Sample Immunizations
-          </Button>
+          <Loader size="lg" />
         </Stack>
       ) : (
-        <Stack gap="md">
-          {/* Filter Controls */}
-          <Card shadow="xs" padding="md" withBorder>
-            <Stack gap="md">
-              <Group align="flex-start">
-                <IconFilter size={20} />
-                <Text fw={500}>Filter Immunizations</Text>
-              </Group>
+        <>
+          {error && (
+            <Alert
+              icon={<IconAlertCircle size={16} />}
+              title="Error"
+              color="red"
+              mb="md"
+            >
+              {error}
+            </Alert>
+          )}
 
-              <DateInput
-                label="Since Date"
-                placeholder="Select a date"
-                value={sinceDate}
-                onChange={setSinceDate}
-                clearable
-                leftSection={<IconCalendar size={16} />}
-                description="Only include immunizations on or after this date"
+          {!hasAnyImmunizations ? (
+            <EmptyState
+              message="No immunizations found in your record."
+              showButton
+              buttonText="Add Sample Immunizations"
+              onButtonClick={() => void handleCreateSampleImmunizations()}
+              loading={creatingSamples}
+            />
+          ) : (
+            <Stack gap="md">
+              <FilterControls
+                sinceDate={sinceDate}
+                onSinceDateChange={setSinceDate}
+                filteredCount={filteredImmunizations.length}
+                hasDateFilter={!!sinceDate}
               />
 
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">
-                  Showing {filteredImmunizations.length} of{" "}
-                  {immunizations.length} immunizations
-                </Text>
-                {sinceDate && (
-                  <Button
-                    variant="subtle"
-                    size="xs"
-                    onClick={() => {
-                      setSinceDate(null);
-                    }}
-                  >
-                    Clear Date Filter
-                  </Button>
-                )}
-              </Group>
+              <ActionButtons
+                onAddSample={() => void handleCreateSampleImmunizations()}
+                onGenerateCard={() => void handleGenerateHealthCard()}
+                isGenerating={generating}
+                isSamplesLoading={creatingSamples}
+                disabled={filteredImmunizations.length === 0}
+                filteredCount={filteredImmunizations.length}
+              />
+
+              {filteredImmunizations.length > 0 ? (
+                <>
+                  <Title order={3}>
+                    {sinceDate
+                      ? "Filtered Immunizations"
+                      : "Your Immunizations"}
+                  </Title>
+                  {filteredImmunizations.map((immunization) => (
+                    <ImmunizationCard
+                      key={immunization.id}
+                      immunization={immunization}
+                    />
+                  ))}
+                </>
+              ) : (
+                <EmptyState
+                  message={
+                    sinceDate
+                      ? `No immunizations found in your record after date ${sinceDate.toLocaleDateString()}.`
+                      : "No immunizations match your filters."
+                  }
+                />
+              )}
             </Stack>
-          </Card>
-
-          {/* Action Buttons */}
-          <Group justify="space-between">
-            <Button
-              variant="subtle"
-              onClick={() => void handleCreateSampleImmunizations()}
-              loading={creatingSamples}
-              size="sm"
-            >
-              Add Sample Data
-            </Button>
-            <Button
-              onClick={() => void handleGenerateHealthCard()}
-              disabled={filteredImmunizations.length === 0 || generating}
-              leftSection={<IconQrcode size={16} />}
-              loading={generating}
-            >
-              Generate Health Card
-            </Button>
-          </Group>
-
-          {/* Immunization List */}
-          <Title order={3}>
-            {filteredImmunizations.length > 0
-              ? "Filtered Immunizations"
-              : "No immunizations match your filters"}
-          </Title>
-
-          {filteredImmunizations.map((immunization) => (
-            <Card key={immunization.id} shadow="xs" padding="md" withBorder>
-              <Group justify="space-between" wrap="nowrap">
-                <Box>
-                  <ResourceBadge value={immunization} link={false} />
-                  <Text size="sm" mt="xs">
-                    {immunization.vaccineCode?.coding?.[0]?.display ||
-                      immunization.vaccineCode?.text ||
-                      "Unknown vaccine"}
-                  </Text>
-                  {immunization.occurrenceDateTime && (
-                    <Text size="xs" c="dimmed">
-                      Date:{" "}
-                      {new Date(
-                        immunization.occurrenceDateTime
-                      ).toLocaleDateString()}
-                    </Text>
-                  )}
-                  {immunization.status && (
-                    <Text size="xs" c="dimmed">
-                      Status: {immunization.status}
-                    </Text>
-                  )}
-                </Box>
-              </Group>
-            </Card>
-          ))}
-        </Stack>
+          )}
+        </>
       )}
     </Document>
   );
