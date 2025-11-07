@@ -6,7 +6,7 @@ import { MedplumProvider } from "@medplum/react";
 import "@medplum/react/styles.css";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter } from "react-router";
+import { BrowserRouter, useNavigate } from "react-router";
 import { App } from "./App";
 import { getConfig } from "./config";
 
@@ -36,16 +36,23 @@ const theme = createTheme({
   },
 });
 
+const AppWithRouter = () => {
+  const navigate = useNavigate();
+  return (
+    <MedplumProvider medplum={medplum} navigate={navigate}>
+      <MantineProvider theme={theme}>
+        <App />
+      </MantineProvider>
+    </MedplumProvider>
+  );
+};
+
 const container = document.getElementById("root") as HTMLDivElement;
 const root = createRoot(container);
 root.render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL || ""}>
-      <MedplumProvider medplum={medplum}>
-        <MantineProvider theme={theme}>
-          <App />
-        </MantineProvider>
-      </MedplumProvider>
+      <AppWithRouter />
     </BrowserRouter>
   </StrictMode>
 );
