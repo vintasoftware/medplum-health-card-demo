@@ -4,6 +4,8 @@ A Medplum Application + Bot that issues SMART Health Cards using the FHIR Operat
 
 Uses the library [kill-the-clipboard](https://github.com/vintasoftware/kill-the-clipboard).
 
+Demo available at https://vintasoftware.github.io/medplum-health-card-demo/
+
 <img height="400" alt="Medplum SMART Health Card Demo" src="https://github.com/user-attachments/assets/b6aec316-c2a4-4852-a7ab-8fd38b6f0784" />
 
 ## Features
